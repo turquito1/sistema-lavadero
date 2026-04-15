@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel del Propietario</title>
+    <style>
+        :root {
+            --azul: #1a73e8;
+            --azul-oscuro: #1557b0;
+            --fondo: #f4f7fb;
+            --texto: #1f2937;
+            --muted: #6b7280;
+            --verde: #137333;
+            --verde-fondo: #e6f4ea;
+            --rojo: #b42318;
+            --rojo-fondo: #fee4e2;
+            --borde: #dbe3ef;
+            --card: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #eef5ff 0%, var(--fondo) 100%);
+            color: var(--texto);
+        }
+
+        .wrap {
+            width: min(1120px, calc(100% - 32px));
+            margin: 32px auto;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--borde);
+            border-radius: 20px;
+            box-shadow: 0 16px 40px rgba(26, 115, 232, 0.08);
+        }
+
+        .hero {
+            padding: 28px;
+            margin-bottom: 20px;
+        }
+
+        .hero h1 {
+            margin: 0 0 8px;
+            font-size: clamp(28px, 4vw, 40px);
+        }
+
+        .hero p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .login-card,
+        .dashboard-card {
+            padding: 24px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        form {
+            display: grid;
+            gap: 14px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        label {
+            display: grid;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        input,
+        button {
+            font: inherit;
+        }
+
+        input {
+            width: 100%;
+            border: 1px solid var(--borde);
+            border-radius: 12px;
+            padding: 12px 14px;
+            background: white;
+        }
+
+        button {
+            border: none;
+            border-radius: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        .primary {
+            background: var(--azul);
+            color: white;
+        }
+
+        .primary:hover {
+            background: var(--azul-oscuro);
+        }
+
+        .ghost {
+            background: #eef4ff;
+            color: var(--azul);
+        }
+
+        .danger {
+            background: var(--rojo-fondo);
+            color: var(--rojo);
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .topbar h2 {
+            margin: 0;
+        }
+
+        .topbar p {
+            margin: 4px 0 0;
+            color: var(--muted);
+        }
+
+        .filters {
+            margin-bottom: 18px;
+        }
+
+        .summary {
+            margin-bottom: 18px;
+            padding: 14px 16px;
+            background: var(--verde-fondo);
+            color: var(--verde);
+            border-radius: 14px;
+            font-weight: 600;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--borde);
+            border-radius: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 880px;
+            background: white;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 14px;
+            border-bottom: 1px solid var(--borde);
+            vertical-align: top;
+        }
+
+        th {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--muted);
+            background: #f9fbff;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .estado {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #eef4ff;
+            color: var(--azul);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .empty {
+            padding: 28px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .error {
+            margin-top: 10px;
+            color: var(--rojo);
+            min-height: 20px;
+        }
+
+        .links {
+            margin-top: 18px;
+        }
+
+        .links a {
+            color: var(--azul);
+            text-decoration: none;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 760px) {
+            .wrap {
+                width: min(100% - 20px, 1120px);
+                margin: 20px auto;
+            }
+
+            .grid-2,
+            .topbar {
+                grid-template-columns: 1fr;
+                display: grid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="wrap">
+        <section class="card hero">
+            <h1>Panel del propietario</h1>
+            <p>Inicia sesion para ver las reservas activas y liberar cualquier turno desde la web.</p>
+        </section>
+
+        <section id="login-section" class="card login-card hidden">
+            <h2>Entrar</h2>
+            <form id="login-form">
+                <div class="grid-2">
+                    <label>
+                        Usuario
+                        <input type="text" id="usuario" autocomplete="username" required>
+                    </label>
+                    <label>
+                        Password
+                        <input type="password" id="password" autocomplete="current-password" required>
+                    </label>
+                </div>
+                <button class="primary" type="submit">Ingresar como propietario</button>
+            </form>
+            <div id="login-error" class="error"></div>
+            <div class="links">
+                <a href="/">Volver a la pagina de reservas</a>
+            </div>
+        </section>
+
+        <section id="dashboard-section" class="card dashboard-card hidden">
+            <div class="topbar">
+                <div>
+                    <h2>Reservas activas</h2>
+                    <p id="owner-name"></p>
+                </div>
+                <button id="logout-btn" class="ghost" type="button">Cerrar sesion</button>
+            </div>
+
+            <form id="filters-form" class="filters">
+                <div class="grid-2">
+                    <label>
+                        Desde
+                        <input type="date" id="desde" required>
+                    </label>
+                    <label>
+                        Hasta
+                        <input type="date" id="hasta" required>
+                    </label>
+                </div>
+                <button class="primary" type="submit">Actualizar listado</button>
+            </form>
+
+            <div id="summary" class="summary"></div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Ubicacion</th>
+                            <th>Contacto</th>
+                            <th>Estado</th>
+                            <th>Accion</th>
+                        </tr>
+                    </thead>
+                    <tbody id="turnos-body">
+                        <tr>
+                            <td class="empty" colspan="7">Cargando reservas...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const backendOrigin = window.location.port === '3000'
+            ? window.location.origin
+            : `${window.location.protocol}//${window.location.hostname}:3000`;
+
+        if (window.location.origin !== backendOrigin) {
+            window.location.replace(`${backendOrigin}/propietario.html`);
+        }
+
+        const loginSection = document.getElementById('login-section');
+        const dashboardSection = document.getElementById('dashboard-section');
+        const loginForm = document.getElementById('login-form');
+        const filtersForm = document.getElementById('filters-form');
+        const logoutBtn = document.getElementById('logout-btn');
+        const loginError = document.getElementById('login-error');
+        const turnosBody = document.getElementById('turnos-body');
+        const summary = document.getElementById('summary');
+        const ownerName = document.getElementById('owner-name');
+        const desdeInput = document.getElementById('desde');
+        const hastaInput = document.getElementById('hasta');
+
+        function hoyISO() {
+            const fecha = new Date();
+            const anio = fecha.getFullYear();
+            const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+            const dia = String(fecha.getDate()).padStart(2, '0');
+            return `${anio}-${mes}-${dia}`;
+        }
+
+        function sumarDiasISO(cantidadDias) {
+            const fecha = new Date();
+            fecha.setDate(fecha.getDate() + cantidadDias);
+            const anio = fecha.getFullYear();
+            const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+            const dia = String(fecha.getDate()).padStart(2, '0');
+            return `${anio}-${mes}-${dia}`;
+        }
+
+        function fechaLegible(fechaISO) {
+            return new Intl.DateTimeFormat('es-AR', {
+                weekday: 'short',
+                day: '2-digit',
+                month: '2-digit'
+            }).format(new Date(`${fechaISO}T00:00:00`));
+        }
+
+        function mostrarLogin() {
+            loginSection.classList.remove('hidden');
+            dashboardSection.classList.add('hidden');
+        }
+
+        function mostrarDashboard(usuario) {
+            ownerName.textContent = `Sesion activa como ${usuario}`;
+            dashboardSection.classList.remove('hidden');
+            loginSection.classList.add('hidden');
+        }
+
+        async function pedirJSON(url, options = {}) {
+            const response = await fetch(url, options);
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                const error = new Error(data.message || 'Ocurrio un error.');
+                error.status = response.status;
+                throw error;
+            }
+
+            return data;
+        }
+
+        function renderTurnos(turnos) {
+            if (turnos.length === 0) {
+                turnosBody.innerHTML = '<tr><td class="empty" colspan="7">No hay reservas activas en ese rango.</td></tr>';
+                return;
+            }
+
+            turnosBody.innerHTML = turnos.map((turno) => `
+                <tr>
+                    <td>${fechaLegible(turno.fecha)}</td>
+                    <td>${turno.hora}</td>
+                    <td>
+                        <strong>${turno.nombre} ${turno.apellido}</strong><br>
+                        <small>ID ${turno.id}</small>
+                    </td>
+                    <td>${turno.barrio}<br><small>MZ ${turno.manzana} - Lote ${turno.lote}</small></td>
+                    <td>${turno.telefono}${turno.email ? `<br><small>${turno.email}</small>` : ''}</td>
+                    <td><span class="estado">${turno.estado}</span></td>
+                    <td>
+                        <button class="danger" type="button" data-id="${turno.id}" data-label="${turno.fecha} ${turno.hora}">
+                            Liberar turno
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function cargarTurnos() {
+            turnosBody.innerHTML = '<tr><td class="empty" colspan="7">Cargando reservas...</td></tr>';
+
+            try {
+                const data = await pedirJSON(`/admin/turnos?desde=${desdeInput.value}&hasta=${hastaInput.value}`);
+                summary.textContent = `${data.turnos.length} reserva(s) activa(s) entre ${fechaLegible(desdeInput.value)} y ${fechaLegible(hastaInput.value)}.`;
+                renderTurnos(data.turnos);
+            } catch (error) {
+                if (error.status === 401) {
+                    mostrarLogin();
+                    return;
+                }
+
+                summary.textContent = 'No se pudo cargar el listado.';
+                turnosBody.innerHTML = `<tr><td class="empty" colspan="7">${error.message}</td></tr>`;
+            }
+        }
+
+        async function verificarSesion() {
+            try {
+                const data = await pedirJSON('/admin/session');
+                mostrarDashboard(data.username);
+                await cargarTurnos();
+            } catch (error) {
+                mostrarLogin();
+            }
+        }
+
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            loginError.textContent = '';
+
+            try {
+                const data = await pedirJSON('/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        usuario: document.getElementById('usuario').value.trim(),
+                        password: document.getElementById('password').value
+                    })
+                });
+
+                loginForm.reset();
+                mostrarDashboard(data.username);
+                await cargarTurnos();
+            } catch (error) {
+                loginError.textContent = error.message;
+            }
+        });
+
+        filtersForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            await cargarTurnos();
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            await fetch('/admin/logout', { method: 'POST' });
+            mostrarLogin();
+        });
+
+        turnosBody.addEventListener('click', async (event) => {
+            const boton = event.target.closest('button[data-id]');
+
+            if (!boton) {
+                return;
+            }
+
+            const turnoId = Number(boton.dataset.id);
+            const label = boton.dataset.label;
+            const confirmar = window.confirm(`Quieres liberar el turno ${label}?`);
+
+            if (!confirmar) {
+                return;
+            }
+
+            boton.disabled = true;
+            boton.textContent = 'Liberando...';
+
+            try {
+                await pedirJSON('/admin/liberar-turno', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: turnoId })
+                });
+                await cargarTurnos();
+            } catch (error) {
+                alert(error.message);
+                boton.disabled = false;
+                boton.textContent = 'Liberar turno';
+            }
+        });
+
+        desdeInput.value = hoyISO();
+        hastaInput.value = sumarDiasISO(30);
+        verificarSesion();
+    </script>
+</body>
+</html>

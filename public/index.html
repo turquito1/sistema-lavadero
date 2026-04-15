@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turnos - Lavadero</title>
+    <style>
+        :root { --azul:#1a73e8; --azul2:#1557b0; --borde:#dbe3ef; --fondo:#f3f6fb; --texto:#1f2937; --muted:#667085; --verde:#137333; --verdebg:#e6f4ea; --rojobg:#fee4e2; }
+        * { box-sizing:border-box; }
+        body { margin:0; padding:20px; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:linear-gradient(180deg,#eef5ff 0%,var(--fondo) 100%); color:var(--texto); }
+        body.modal-open { overflow:hidden; }
+        .container { max-width:1080px; margin:auto; background:#fff; padding:28px; border-radius:24px; box-shadow:0 24px 60px rgba(26,115,232,.12); }
+        .header { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; margin-bottom:20px; }
+        h1 { margin:0 0 8px; color:var(--azul); font-size:clamp(30px,4vw,42px); }
+        .sub { margin:0; color:var(--muted); }
+        .right { display:grid; gap:10px; justify-items:end; }
+        .row { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; align-items:center; }
+        .hidden { display:none !important; }
+        .btn, .ghost, .link, .close { font:inherit; border:none; border-radius:12px; cursor:pointer; }
+        .btn, .ghost, .link { padding:11px 16px; }
+        .btn { background:var(--azul); color:#fff; }
+        .btn:hover { background:var(--azul2); }
+        .ghost { background:#eef4ff; color:var(--azul); }
+        .ghost:hover { background:#dceaff; }
+        .link { background:transparent; color:var(--muted); padding-inline:0; }
+        .owner { color:var(--azul); text-decoration:none; font-size:14px; font-weight:600; }
+        .owner:hover { text-decoration:underline; }
+        .pill { background:#eef5ff; color:var(--azul); border-radius:999px; padding:10px 14px; font-weight:600; }
+        .pill small { color:var(--muted); font-weight:500; }
+        .banner { margin-bottom:18px; padding:14px 16px; border-radius:16px; background:var(--verdebg); color:var(--verde); font-weight:600; }
+        table { width:100%; border-collapse:collapse; margin-top:20px; background:#fff; }
+        th, td { border:1px solid #e0e0e0; padding:15px; text-align:center; }
+        th { background:var(--azul); color:#fff; }
+        .disponible { background:#e6f4ea; color:#1e8e3e; cursor:pointer; font-weight:bold; }
+        .disponible:hover { background:#ceead6; }
+        .ocupado { background:#fce8e6; color:#c5221f; font-weight:bold; }
+        .pasado { background:#f1f3f4; color:#5f6368; }
+        .seleccionado { outline:3px solid var(--azul); outline-offset:-3px; }
+        #form-reserva { display:none; margin-top:28px; padding:22px; border:2px solid var(--azul); border-radius:18px; text-align:left; background:#f8fbff; }
+        #form-reserva h3 { margin:0 0 8px; }
+        .helper { margin:0 0 16px; color:var(--muted); }
+        .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+        input { width:100%; padding:11px 12px; border:1px solid #cfd8e3; border-radius:10px; font:inherit; }
+        .submit { grid-column:span 2; padding:13px; background:var(--azul); color:#fff; border:none; border-radius:12px; cursor:pointer; font-weight:600; }
+        .submit:hover { background:var(--azul2); }
+        .modal { position:fixed; inset:0; background:rgba(15,23,42,.55); display:grid; place-items:center; padding:20px; z-index:20; }
+        .card { width:min(760px,100%); background:#fff; border-radius:24px; padding:22px; position:relative; box-shadow:0 26px 70px rgba(15,23,42,.28); }
+        .close { position:absolute; top:14px; right:14px; width:38px; height:38px; background:#eef2f7; color:var(--texto); font-size:18px; }
+        .tabs { display:flex; gap:10px; margin-bottom:12px; }
+        .tab { background:#edf2fb; color:var(--muted); padding:10px 14px; border-radius:999px; }
+        .tab.active { background:var(--azul); color:#fff; }
+        .card h2 { margin:0 0 8px; }
+        .card p { margin:0 0 16px; color:var(--muted); }
+        .feedback { min-height:22px; margin-bottom:10px; font-weight:600; }
+        .feedback.error { color:#b42318; }
+        .auth-actions { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+        @media (max-width:820px) { .header { flex-direction:column; } .right { justify-items:start; } .row { justify-content:flex-start; } }
+        @media (max-width:700px) { body { padding:12px; } .container { padding:20px; } .grid { grid-template-columns:1fr; } .submit { grid-column:span 1; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>Reserva tu Turno</h1>
+                <p class="sub">Hace clic en un horario libre para agendar el lavado.</p>
+            </div>
+            <div class="right">
+                <div id="guest-actions" class="row">
+                    <button id="open-register" class="ghost" type="button">Registrarse</button>
+                    <button id="open-login" class="btn" type="button">Iniciar sesion</button>
+                </div>
+                <div id="client-actions" class="row hidden">
+                    <div class="pill"><span id="client-name">Cliente</span> <small id="client-email"></small></div>
+                    <button id="logout-client" class="ghost" type="button">Cerrar sesion</button>
+                </div>
+                <a id="owner-access-link" class="owner" href="/propietario.html">Entrar como propietario</a>
+            </div>
+        </div>
+
+        <div id="cliente-banner" class="banner hidden"></div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Hora</th>
+                    <th>Lunes</th>
+                    <th>Martes</th>
+                    <th>Miercoles</th>
+                    <th>Jueves</th>
+                    <th>Viernes</th>
+                    <th>Sabado</th>
+                </tr>
+            </thead>
+            <tbody id="cuerpo-tabla"></tbody>
+        </table>
+
+        <div id="form-reserva">
+            <h3>Reservar para: <span id="info-turno"></span></h3>
+            <p id="cliente-form-info" class="helper hidden"></p>
+            <form id="reserva-cliente">
+                <div class="grid">
+                    <input type="text" id="nombre" placeholder="Nombre" required autocomplete="given-name">
+                    <input type="text" id="apellido" placeholder="Apellido" required autocomplete="family-name">
+                    <input type="text" id="barrio" placeholder="Barrio" required autocomplete="address-level2">
+                    <input type="text" id="mz" placeholder="Manzana" required autocomplete="off">
+                    <input type="text" id="lote" placeholder="Lote" required autocomplete="off">
+                    <input type="text" id="telefono" placeholder="WhatsApp (ej: 1122334455)" required autocomplete="tel">
+                    <input type="email" id="mail" placeholder="Email (opcional)" autocomplete="email">
+                    <button class="submit" type="submit">Confirmar Turno</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="auth-modal" class="modal hidden">
+        <div class="card">
+            <button id="close-auth-modal" class="close" type="button" aria-label="Cerrar">x</button>
+            <div class="tabs">
+                <button id="tab-register" class="tab active" type="button">Registrarse</button>
+                <button id="tab-login" class="tab" type="button">Iniciar sesion</button>
+            </div>
+            <h2 id="auth-title">Crea tu cuenta</h2>
+            <p id="auth-subtitle">Guarda tus datos una sola vez y reserva mas rapido cuando vuelvas.</p>
+            <div id="auth-feedback" class="feedback"></div>
+
+            <form id="register-form">
+                <div class="grid">
+                    <input type="text" id="registro-nombre" placeholder="Nombre" required autocomplete="given-name">
+                    <input type="text" id="registro-apellido" placeholder="Apellido" required autocomplete="family-name">
+                    <input type="text" id="registro-barrio" placeholder="Barrio" required autocomplete="address-level2">
+                    <input type="text" id="registro-mz" placeholder="Manzana" required autocomplete="off">
+                    <input type="text" id="registro-lote" placeholder="Lote" required autocomplete="off">
+                    <input type="text" id="registro-telefono" placeholder="WhatsApp" required autocomplete="tel">
+                    <input type="email" id="registro-email" placeholder="Email" required autocomplete="email">
+                    <input type="password" id="registro-password" placeholder="Password" required autocomplete="new-password">
+                    <input type="password" id="registro-password-repeat" placeholder="Repetir password" required autocomplete="new-password">
+                </div>
+                <div class="auth-actions" style="margin-top:14px">
+                    <button class="btn" type="submit">Crear cuenta</button>
+                </div>
+            </form>
+
+            <form id="login-form" class="hidden">
+                <div class="grid">
+                    <input type="email" id="login-email" placeholder="Email" required autocomplete="email">
+                    <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+                </div>
+                <div class="auth-actions" style="margin-top:14px">
+                    <button class="btn" type="submit">Entrar</button>
+                    <button id="switch-to-register" class="link" type="button">Todavia no tengo cuenta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const horarios = ['09:00', '11:00', '15:00', '17:00', '19:00'];
+        const dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
+        const backendOrigin = window.location.port === '3000' ? window.location.origin : `${window.location.protocol}//${window.location.hostname}:3000`;
+
+        const cuerpo = document.getElementById('cuerpo-tabla');
+        const cabecerasDias = Array.from(document.querySelectorAll('thead th')).slice(1);
+        const formReserva = document.getElementById('form-reserva');
+        const formulario = document.getElementById('reserva-cliente');
+        const infoTurno = document.getElementById('info-turno');
+        const ownerAccessLink = document.getElementById('owner-access-link');
+        const guestActions = document.getElementById('guest-actions');
+        const clientActions = document.getElementById('client-actions');
+        const clientName = document.getElementById('client-name');
+        const clientEmail = document.getElementById('client-email');
+        const logoutClientButton = document.getElementById('logout-client');
+        const clienteBanner = document.getElementById('cliente-banner');
+        const clienteFormInfo = document.getElementById('cliente-form-info');
+
+        const authModal = document.getElementById('auth-modal');
+        const openRegisterButton = document.getElementById('open-register');
+        const openLoginButton = document.getElementById('open-login');
+        const closeAuthModalButton = document.getElementById('close-auth-modal');
+        const tabRegister = document.getElementById('tab-register');
+        const tabLogin = document.getElementById('tab-login');
+        const authTitle = document.getElementById('auth-title');
+        const authSubtitle = document.getElementById('auth-subtitle');
+        const authFeedback = document.getElementById('auth-feedback');
+        const registerForm = document.getElementById('register-form');
+        const loginForm = document.getElementById('login-form');
+        const switchToRegisterButton = document.getElementById('switch-to-register');
+
+        let fechasSemana = [];
+        let turnoSeleccionado = null;
+        let clienteActual = null;
+
+        ownerAccessLink.href = `${backendOrigin}/propietario.html`;
+
+        function feedback(msg = '', type = '') {
+            authFeedback.textContent = msg;
+            authFeedback.className = 'feedback';
+            if (type) authFeedback.classList.add(type);
+        }
+
+        function mode(tipo) {
+            const reg = tipo === 'register';
+            registerForm.classList.toggle('hidden', !reg);
+            loginForm.classList.toggle('hidden', reg);
+            tabRegister.classList.toggle('active', reg);
+            tabLogin.classList.toggle('active', !reg);
+            authTitle.textContent = reg ? 'Crea tu cuenta' : 'Inicia sesion';
+            authSubtitle.textContent = reg
+                ? 'Guarda tus datos una sola vez y reserva mas rapido cuando vuelvas.'
+                : 'Entra con tu cuenta para completar la reserva con tus datos guardados.';
+            feedback();
+        }
+
+        function copiarReservaARegistro() {
+            document.getElementById('registro-nombre').value = document.getElementById('nombre').value.trim();
+            document.getElementById('registro-apellido').value = document.getElementById('apellido').value.trim();
+            document.getElementById('registro-barrio').value = document.getElementById('barrio').value.trim();
+            document.getElementById('registro-mz').value = document.getElementById('mz').value.trim();
+            document.getElementById('registro-lote').value = document.getElementById('lote').value.trim();
+            document.getElementById('registro-telefono').value = document.getElementById('telefono').value.trim();
+            document.getElementById('registro-email').value = document.getElementById('mail').value.trim();
+        }
+
+        function openModal(tipo) {
+            if (tipo === 'register') copiarReservaARegistro();
+            mode(tipo);
+            authModal.classList.remove('hidden');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeModal() {
+            authModal.classList.add('hidden');
+            document.body.classList.remove('modal-open');
+            feedback();
+        }
+
+        function formatearFechaISO(fecha) {
+            const anio = fecha.getFullYear();
+            const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+            const dia = String(fecha.getDate()).padStart(2, '0');
+            return `${anio}-${mes}-${dia}`;
+        }
+
+        function formatearFechaCorta(fecha) {
+            return new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: '2-digit' }).format(fecha);
+        }
+
+        function obtenerFechasSemanaLaboral() {
+            const hoy = new Date();
+            const base = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+            const diaSemana = base.getDay();
+            if (diaSemana === 0) base.setDate(base.getDate() + 1);
+            else base.setDate(base.getDate() - diaSemana + 1);
+            return dias.map((_, i) => {
+                const fecha = new Date(base);
+                fecha.setDate(base.getDate() + i);
+                return fecha;
+            });
+        }
+
+        function esTurnoPasado(fechaISO, hora) {
+            const [anio, mes, dia] = fechaISO.split('-').map(Number);
+            const [horas, minutos] = hora.split(':').map(Number);
+            return new Date(anio, mes - 1, dia, horas, minutos, 0, 0) < new Date();
+        }
+
+        function limpiarSeleccion() {
+            document.querySelectorAll('.seleccionado').forEach((celda) => celda.classList.remove('seleccionado'));
+        }
+
+        function actualizarCabeceras() {
+            cabecerasDias.forEach((cabecera, i) => {
+                cabecera.textContent = `${dias[i]} ${formatearFechaCorta(fechasSemana[i])}`;
+            });
+        }
+
+        function completar(id, valor, force = false) {
+            const input = document.getElementById(id);
+            if (!input || !valor) return;
+            if (force || !input.value.trim()) input.value = valor;
+        }
+
+        function aplicarCliente(force = false) {
+            if (!clienteActual) return;
+            completar('nombre', clienteActual.nombre, force);
+            completar('apellido', clienteActual.apellido, force);
+            completar('barrio', clienteActual.barrio, force);
+            completar('mz', clienteActual.manzana, force);
+            completar('lote', clienteActual.lote, force);
+            completar('telefono', clienteActual.telefono, force);
+            completar('mail', clienteActual.email, force);
+        }
+
+        function pintarSesion() {
+            const ok = Boolean(clienteActual);
+            guestActions.classList.toggle('hidden', ok);
+            clientActions.classList.toggle('hidden', !ok);
+            clienteBanner.classList.toggle('hidden', !ok);
+            clienteFormInfo.classList.toggle('hidden', !ok);
+            if (!ok) return;
+            clientName.textContent = `${clienteActual.nombre} ${clienteActual.apellido}`;
+            clientEmail.textContent = clienteActual.email;
+            clienteBanner.textContent = `Sesion iniciada como ${clienteActual.nombre}. Tus datos quedan listos para reservar.`;
+            clienteFormInfo.textContent = `Estas reservando con la cuenta ${clienteActual.email}. Puedes editar los datos si hace falta.`;
+            aplicarCliente();
+        }
+
+        async function pedirJSON(url, options = {}) {
+            const response = await fetch(url, { credentials: 'include', ...options });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const error = new Error(data.message || 'Ocurrio un error.');
+                error.status = response.status;
+                throw error;
+            }
+            return data;
+        }
+
+        function seleccionarTurno(celda) {
+            if (!celda.classList.contains('disponible')) return;
+            limpiarSeleccion();
+            celda.classList.add('seleccionado');
+            const i = Number(celda.dataset.diaIndex);
+            turnoSeleccionado = { dia: dias[i], fecha: celda.dataset.fecha, hora: celda.dataset.hora };
+            formReserva.style.display = 'block';
+            infoTurno.innerText = `${turnoSeleccionado.dia} ${formatearFechaCorta(fechasSemana[i])} a las ${turnoSeleccionado.hora}`;
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        function crearTabla() {
+            cuerpo.innerHTML = '';
+            horarios.forEach((hora) => {
+                const fila = document.createElement('tr');
+                const celdaHora = document.createElement('td');
+                celdaHora.textContent = hora;
+                fila.appendChild(celdaHora);
+                fechasSemana.forEach((fecha, i) => {
+                    const celda = document.createElement('td');
+                    celda.dataset.hora = hora;
+                    celda.dataset.fecha = formatearFechaISO(fecha);
+                    celda.dataset.diaIndex = String(i);
+                    celda.textContent = 'Cargando...';
+                    celda.addEventListener('click', () => seleccionarTurno(celda));
+                    fila.appendChild(celda);
+                });
+                cuerpo.appendChild(fila);
+            });
+        }
+
+        async function cargarTurnos() {
+            fechasSemana = obtenerFechasSemanaLaboral();
+            actualizarCabeceras();
+            crearTabla();
+            const desde = formatearFechaISO(fechasSemana[0]);
+            const hasta = formatearFechaISO(fechasSemana[fechasSemana.length - 1]);
+            try {
+                const respuesta = await fetch(`${backendOrigin}/turnos?desde=${desde}&hasta=${hasta}`, { credentials: 'include' });
+                const data = await respuesta.json();
+                if (!respuesta.ok) throw new Error(data.message || 'No se pudieron cargar los turnos.');
+                const reservados = new Set(data.turnos.map((turno) => `${turno.fecha}|${turno.hora}`));
+                document.querySelectorAll('#cuerpo-tabla td[data-fecha]').forEach((celda) => {
+                    const clave = `${celda.dataset.fecha}|${celda.dataset.hora}`;
+                    celda.className = '';
+                    if (reservados.has(clave)) {
+                        celda.textContent = 'Ocupado';
+                        celda.classList.add('ocupado');
+                    } else if (esTurnoPasado(celda.dataset.fecha, celda.dataset.hora)) {
+                        celda.textContent = 'No disponible';
+                        celda.classList.add('pasado');
+                    } else {
+                        celda.textContent = 'Libre';
+                        celda.classList.add('disponible');
+                    }
+                });
+            } catch (error) {
+                console.error(error);
+                document.querySelectorAll('#cuerpo-tabla td[data-fecha]').forEach((celda) => {
+                    celda.className = 'pasado';
+                    celda.textContent = 'No disponible';
+                });
+                alert('No pudimos cargar los turnos disponibles. Recarga la pagina.');
+            }
+        }
+
+        async function cargarSesionCliente() {
+            try {
+                const data = await pedirJSON(`${backendOrigin}/auth/session`);
+                clienteActual = data.cliente;
+            } catch (error) {
+                clienteActual = null;
+            }
+            pintarSesion();
+        }
+
+        openRegisterButton.addEventListener('click', () => openModal('register'));
+        openLoginButton.addEventListener('click', () => openModal('login'));
+        closeAuthModalButton.addEventListener('click', closeModal);
+        tabRegister.addEventListener('click', () => mode('register'));
+        tabLogin.addEventListener('click', () => mode('login'));
+        switchToRegisterButton.addEventListener('click', () => mode('register'));
+        authModal.addEventListener('click', (event) => { if (event.target === authModal) closeModal(); });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !authModal.classList.contains('hidden')) closeModal();
+        });
+
+        registerForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const password = document.getElementById('registro-password').value;
+            const repeat = document.getElementById('registro-password-repeat').value;
+            if (password !== repeat) {
+                feedback('Las passwords no coinciden.', 'error');
+                return;
+            }
+            try {
+                const data = await pedirJSON(`${backendOrigin}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nombre: document.getElementById('registro-nombre').value.trim(),
+                        apellido: document.getElementById('registro-apellido').value.trim(),
+                        barrio: document.getElementById('registro-barrio').value.trim(),
+                        mz: document.getElementById('registro-mz').value.trim(),
+                        lote: document.getElementById('registro-lote').value.trim(),
+                        telefono: document.getElementById('registro-telefono').value.trim(),
+                        email: document.getElementById('registro-email').value.trim(),
+                        password
+                    })
+                });
+                clienteActual = data.cliente;
+                pintarSesion();
+                aplicarCliente(true);
+                closeModal();
+            } catch (error) {
+                feedback(error.message, 'error');
+            }
+        });
+
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            try {
+                const data = await pedirJSON(`${backendOrigin}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('login-email').value.trim(),
+                        password: document.getElementById('login-password').value
+                    })
+                });
+                clienteActual = data.cliente;
+                pintarSesion();
+                aplicarCliente(true);
+                closeModal();
+            } catch (error) {
+                feedback(error.message, 'error');
+            }
+        });
+
+        logoutClientButton.addEventListener('click', async () => {
+            try {
+                await pedirJSON(`${backendOrigin}/auth/logout`, { method: 'POST' });
+            } catch (error) {
+                console.error(error);
+            }
+            clienteActual = null;
+            pintarSesion();
+        });
+
+        formulario.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!turnoSeleccionado) {
+                alert('Selecciona un horario antes de confirmar.');
+                return;
+            }
+            const datos = {
+                nombre: document.getElementById('nombre').value.trim(),
+                apellido: document.getElementById('apellido').value.trim(),
+                barrio: document.getElementById('barrio').value.trim(),
+                mz: document.getElementById('mz').value.trim(),
+                lote: document.getElementById('lote').value.trim(),
+                telefono: document.getElementById('telefono').value.trim(),
+                email: document.getElementById('mail').value.trim(),
+                fecha: turnoSeleccionado.fecha,
+                hora: turnoSeleccionado.hora
+            };
+            try {
+                const respuesta = await fetch(`${backendOrigin}/reservar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(datos)
+                });
+                const data = await respuesta.json();
+                if (!respuesta.ok || data.status !== 'ok') throw new Error(data.message || 'No pudimos guardar tu reserva.');
+                alert('Turno reservado con exito. En breve recibiras un WhatsApp.');
+                location.reload();
+            } catch (error) {
+                console.error(error);
+                alert(error.message || 'Ocurrio un error al reservar.');
+            }
+        });
+
+        (async function init() {
+            await Promise.all([cargarSesionCliente(), cargarTurnos()]);
+        })();
+    </script>
+</body>
+</html>
